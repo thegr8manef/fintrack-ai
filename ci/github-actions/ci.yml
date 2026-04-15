@@ -1,0 +1,134 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - backend/api-gateway
+          - backend/services/auth-service
+          - backend/services/user-service
+          - backend/services/transaction-service
+          - backend/services/analytics-service
+          - backend/services/ai-recommendation-service
+          - backend/services/notification-service
+          - backend/services/receipt-ocr-service
+          - backend/services/currency-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.service }}
+        run: npm ci
+
+      - name: Lint
+        working-directory: ${{ matrix.service }}
+        run: npm run lint --if-present
+
+      - name: Test
+        working-directory: ${{ matrix.service }}
+        run: npm test --if-present
+
+  build-and-push:
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - user-service
+          - transaction-service
+          - analytics-service
+          - ai-recommendation-service
+          - notification-service
+          - receipt-ocr-service
+          - currency-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          SERVICE_PATH=${{ matrix.service == 'api-gateway' && 'backend/api-gateway' || format('backend/services/{0}', matrix.service) }}
+          docker build -t $ECR_REGISTRY/fintrack-${{ matrix.service }}:$IMAGE_TAG $SERVICE_PATH
+          docker push $ECR_REGISTRY/fintrack-${{ matrix.service }}:$IMAGE_TAG
+
+  deploy-dev:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name fintrack-dev
+
+      - name: Deploy to dev
+        run: |
+          kubectl apply -k infra/kubernetes/overlays/dev/
+
+  mobile-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: mobile-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: mobile-app
+        run: npm ci
+
+      - name: Type check
+        working-directory: mobile-app
+        run: npm run typecheck --if-present
+
+      - name: Lint
+        working-directory: mobile-app
+        run: npm run lint --if-present
+
+      - name: Test
+        working-directory: mobile-app
+        run: npm test --if-present
