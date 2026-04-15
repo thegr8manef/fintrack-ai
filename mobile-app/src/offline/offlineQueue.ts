@@ -1,3 +1,20 @@
+/**
+ * FinTrack AI — Offline Queue (MMKV Storage)
+ *
+ * Queue for storing actions when the device is offline.
+ * Uses MMKV (fast key-value storage) to persist queued actions.
+ *
+ * Methods:
+ * - enqueue():  Add an action to the offline queue with auto-generated ID
+ * - getAll():   Retrieve all queued actions
+ * - remove():   Remove a specific action by ID (after successful sync)
+ * - clear():    Clear the entire queue
+ *
+ * Each action has: { id, type, payload, createdAt }
+ *
+ * Status: Queue infrastructure ready. Automatic sync on reconnection
+ * is NOT yet implemented.
+ */
 import { MMKV } from "react-native-mmkv";
 
 const storage = new MMKV({ id: "fintrack-offline" });

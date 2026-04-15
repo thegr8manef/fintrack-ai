@@ -1,3 +1,13 @@
+# =============================================================================
+# Receipt OCR Service — Dockerfile (Multi-stage Build)
+#
+# Stage 1 (builder): Installs dependencies and compiles TypeScript
+# Stage 2 (production): Minimal runtime image with compiled JS only
+#
+# Requires: MongoDB (fintrack_receipts)
+# Port: 3007
+# =============================================================================
+
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./

@@ -1,3 +1,14 @@
+/**
+ * Transaction Service — Controller
+ *
+ * REST endpoints for financial transaction management:
+ *   POST   /transactions           — Create new transaction (userId from body, JWT in production)
+ *   GET    /transactions?userId=&page=&limit=  — Paginated user transactions
+ *   GET    /transactions/:id        — Get single transaction by ID
+ *   DELETE /transactions/:id        — Delete a transaction
+ *   GET    /budgets/:userId         — List all budgets for a user
+ *   POST   /budgets                 — Create a new budget (category + limit)
+ */
 import {
   Controller,
   Get,

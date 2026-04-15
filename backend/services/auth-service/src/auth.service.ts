@@ -1,3 +1,18 @@
+/**
+ * Auth Service — Business Logic
+ *
+ * Core authentication operations:
+ * - register(): Hashes password with bcrypt (12 rounds), creates user, issues tokens
+ * - login(): Validates credentials against stored hash, issues tokens on success
+ * - refresh(): Validates refresh token hash (SHA-256), revokes old token, issues new pair
+ *
+ * Token Strategy:
+ * - Access Token:  JWT signed with HS256, 15-minute TTL
+ * - Refresh Token: 64-char hex string, SHA-256 hashed in DB, 7-day TTL
+ * - Token rotation: Each refresh revokes the old token and issues a new pair
+ *
+ * Security: Constant-time comparison via bcrypt, tokens hashed before storage
+ */
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";

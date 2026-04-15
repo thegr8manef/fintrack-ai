@@ -1,3 +1,12 @@
+/**
+ * User Service — Root Module
+ *
+ * Wires profile management:
+ * - TypeORM: Connects to PostgreSQL (fintrack_users) with auto-sync in dev
+ * - Entities: User (profile data), UserPreference (notification/insight settings)
+ * - UserController: CRUD endpoints for profiles and preferences
+ * - UserService: Business logic with upsert support for preferences
+ */
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { UserController } from "./user.controller";

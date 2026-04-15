@@ -1,3 +1,36 @@
+# =============================================================================
+# FinTrack AI — Terraform Infrastructure (AWS)
+# =============================================================================
+#
+# Provisions the production AWS infrastructure:
+#
+# Networking:
+#   - VPC (10.0.0.0/16) with 3 availability zones
+#   - Private subnets (10.0.1-3.0/24) for services and databases
+#   - Public subnets (10.0.101-103.0/24) for load balancers
+#   - NAT gateway for outbound internet from private subnets
+#
+# Compute:
+#   - EKS cluster (Kubernetes 1.29) with t3.medium nodes (2-10 replicas)
+#   - Managed node groups with auto-scaling
+#
+# Data:
+#   - RDS PostgreSQL 16 (db.t3.medium, Multi-AZ in prod)
+#   - ElastiCache Redis 7 (cache.t3.micro)
+#   - S3 bucket for receipt image storage (KMS encrypted, public access blocked)
+#
+# Security:
+#   - DB security group restricts access to private subnets only
+#   - S3 public access fully blocked
+#
+# State: Stored in S3 bucket 'fintrack-terraform-state'
+#
+# Usage:
+#   terraform init
+#   terraform plan -var="environment=dev"
+#   terraform apply -var="environment=prod"
+# =============================================================================
+
 terraform {
   required_version = ">= 1.7"
 

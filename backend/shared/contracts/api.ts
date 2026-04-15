@@ -1,3 +1,13 @@
+/**
+ * Shared Contracts — API Types
+ *
+ * Common response types used across all microservices:
+ * - ServiceHealthResponse: Standard health check format for /health endpoints
+ * - PaginatedResponse<T>:  Wrapper for paginated list endpoints with meta info
+ * - ApiErrorResponse:       Standard error response format with status code and message
+ *
+ * These types ensure consistent API responses across the entire platform.
+ */
 export interface ServiceHealthResponse {
   status: "ok" | "degraded" | "down";
   service: string;

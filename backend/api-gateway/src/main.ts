@@ -1,3 +1,15 @@
+/**
+ * API Gateway — Entry Point
+ *
+ * Bootstraps the NestJS application using Fastify as the HTTP adapter.
+ * The gateway is the single entry point for all client requests (mobile app, web).
+ * It listens on port 3000 (configurable via PORT env var) and routes
+ * incoming requests to the appropriate downstream microservice via ProxyModule.
+ *
+ * Global prefix: /api/v1
+ * CORS: enabled for cross-origin mobile/web requests
+ */
+import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import {
   FastifyAdapter,

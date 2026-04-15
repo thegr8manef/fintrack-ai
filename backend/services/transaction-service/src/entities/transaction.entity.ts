@@ -1,3 +1,19 @@
+/**
+ * Transaction Service — Transaction Entity
+ *
+ * Represents a financial transaction in the 'transactions' table.
+ *
+ * Fields:
+ * - userId:     Owner of this transaction (indexed for fast lookups)
+ * - accountId:  Optional linked bank account
+ * - amount:     Transaction value (decimal 12,2 for precision)
+ * - currency:   3-letter ISO currency code (e.g., 'USD', 'EUR')
+ * - baseAmount: Amount converted to user's default currency (for analytics)
+ * - category:   Expense category (food, transport, entertainment, etc.)
+ * - merchant:   Merchant name (optional — used by AI categorization)
+ * - txnType:    'income' or 'expense' (default: 'expense')
+ * - occurredAt: When the transaction happened (for timeline ordering)
+ */
 import { Entity, PrimaryGeneratedColumn, Column, Index } from "typeorm";
 
 @Entity("transactions")

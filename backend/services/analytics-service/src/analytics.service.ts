@@ -1,3 +1,14 @@
+/**
+ * Analytics Service — Business Logic
+ *
+ * Queries the 'spend_analytics' Elasticsearch index for spend aggregations.
+ * Uses ES bool query to filter by user_id and time range, then runs a
+ * terms aggregation on the 'category' field with sum on 'amount'.
+ *
+ * Fallback: Returns { categories: [], totalSpend: 0, range } if ES index
+ * doesn't exist or query fails. This is expected until Kafka consumers
+ * are implemented to populate the index from TransactionCreated events.
+ */
 import { Injectable } from "@nestjs/common";
 import { Client } from "@elastic/elasticsearch";
 

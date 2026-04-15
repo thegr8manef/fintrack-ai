@@ -1,3 +1,20 @@
+/**
+ * Shared Contracts — Kafka Event Types
+ *
+ * Defines the event schema for the async event-driven architecture.
+ * All events extend BaseEvent with eventType, eventId, occurredAt, and payload.
+ *
+ * Events:
+ * - TransactionCreated:       Emitted by transaction-service on new transaction
+ * - TransactionUpdated:       Emitted when a transaction is modified
+ * - ReceiptProcessed:         Emitted by receipt-ocr-service after OCR processing
+ * - BudgetThresholdReached:   Emitted when user spending exceeds budget threshold
+ * - InsightGenerated:         Emitted by AI-service with new insights
+ * - ExchangeRateUpdated:      Emitted by currency-service on rate changes
+ * - NotificationRequested:    Emitted to trigger notification delivery
+ *
+ * Kafka Topics: transactions, receipts, budgets, insights, exchange-rates, notifications
+ */
 export interface BaseEvent {
   eventType: string;
   eventId: string;

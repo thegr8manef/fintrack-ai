@@ -1,3 +1,12 @@
+/**
+ * Auth Service — Root Module
+ *
+ * Wires together the authentication layer:
+ * - TypeORM: Connects to PostgreSQL (fintrack_auth) with auto-sync in dev
+ * - Entities: UserAuth (credentials), RefreshToken (token rotation), Role (RBAC)
+ * - AuthController: REST endpoints for register/login/refresh
+ * - AuthService: Business logic for credential validation and token issuance
+ */
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AuthController } from "./auth.controller";

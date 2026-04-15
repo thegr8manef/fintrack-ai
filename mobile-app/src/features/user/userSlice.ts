@@ -1,3 +1,15 @@
+/**
+ * FinTrack AI — User State Slice (Redux Toolkit)
+ *
+ * Local user profile and preferences state:
+ * - profile:     User's name, email, locale, timezone, currency
+ * - preferences: Notification and insight frequency settings
+ *
+ * Actions:
+ * - setProfile():         Set user profile data (after API fetch)
+ * - updatePreferences():  Merge preference changes
+ * - clearUser():          Reset profile to null (on logout)
+ */
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface UserProfile {

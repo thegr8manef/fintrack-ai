@@ -1,3 +1,11 @@
+/**
+ * Receipt OCR Service — Root Module
+ *
+ * Wires the receipt management layer:
+ * - Mongoose: Connects to MongoDB (fintrack_receipts) for document storage
+ * - Schema: Receipt (image, merchant, items, OCR confidence)
+ * - ReceiptController + ReceiptService: Upload and query receipts
+ */
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ReceiptController } from "./receipt.controller";

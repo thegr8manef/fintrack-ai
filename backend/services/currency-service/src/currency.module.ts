@@ -1,3 +1,11 @@
+/**
+ * Currency Service — Root Module
+ *
+ * Wires the currency management layer:
+ * - TypeORM: Connects to PostgreSQL (fintrack_currency) for FX rate storage
+ * - Entity: FxRate (base, quote, rate, asOf)
+ * - CurrencyService: Rate lookup with Redis caching + conversion logic
+ */
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { CurrencyController } from "./currency.controller";

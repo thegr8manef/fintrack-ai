@@ -1,3 +1,18 @@
+/**
+ * FinTrack AI — Transaction State Slice (Redux Toolkit)
+ *
+ * Local transaction cache for offline-first support:
+ * - items[]:    Cached transaction list
+ * - isLoading:  Loading state flag
+ *
+ * Actions:
+ * - setTransactions():  Replace entire list (from API response)
+ * - addTransaction():   Prepend new transaction (optimistic update)
+ * - removeTransaction(): Remove by ID (optimistic delete)
+ *
+ * Note: RTK Query handles primary data fetching.
+ * This slice is for local state management and offline support.
+ */
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface Transaction {

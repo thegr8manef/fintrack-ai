@@ -1,3 +1,18 @@
+/**
+ * Transaction Service — Business Logic
+ *
+ * Core operations:
+ * - create():       Saves transaction to DB, emits TransactionCreated event to Kafka
+ * - findByUser():   Paginated query ordered by occurredAt DESC
+ * - findOne():      Single transaction lookup, throws 404 if missing
+ * - delete():       Hard delete by ID
+ * - getBudgets():   List all budgets for a user
+ * - createBudget(): Create a new budget with category and limit amount
+ *
+ * Kafka Events Produced:
+ *   TransactionCreated → { transactionId, userId, amount, currency, category }
+ *   Published to the 'transactions' topic for analytics, notifications, AI
+ */
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";

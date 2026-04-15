@@ -1,3 +1,11 @@
+/**
+ * Notification Service — Root Module
+ *
+ * Wires the notification queue system:
+ * - TypeORM: Connects to PostgreSQL (fintrack_notifications)
+ * - Entities: NotificationQueue (pending messages), NotificationTemplate (message templates)
+ * - NotificationController + NotificationService: Enqueue and fetch pending notifications
+ */
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { NotificationController } from "./notification.controller";

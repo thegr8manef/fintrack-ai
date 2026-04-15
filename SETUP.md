@@ -4,16 +4,12 @@
 
 Install the following before starting:
 
-```bash
-# Node.js 20+
-# https://nodejs.org/
+- **Node.js 20+** — [https://nodejs.org/](https://nodejs.org/)
+- **Docker Desktop** — [https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/)
+- **React Native CLI + Android/iOS environment** — [https://reactnative.dev/docs/environment-setup](https://reactnative.dev/docs/environment-setup)
+- **Java 17+** (for Android builds)
 
-# Docker & Docker Compose
-# https://docs.docker.com/get-docker/
-
-# React Native CLI + environment
-# https://reactnative.dev/docs/environment-setup
-```
+> **Windows users:** Make sure Docker Desktop is running before executing any `docker-compose` commands.
 
 ---
 
@@ -26,40 +22,61 @@ cd fintrack-ai
 
 ---
 
-## 2. Start Infrastructure (Docker)
+## 2. Start Everything via Docker Compose
 
-Spin up Postgres, MongoDB, Redis, Kafka, Elasticsearch:
+The simplest way to run the full backend stack:
 
 ```bash
-docker-compose up -d postgres mongodb redis zookeeper kafka elasticsearch
+docker-compose up -d
 ```
 
-Verify all containers are running:
+This starts:
+
+- **Infrastructure**: PostgreSQL 16, MongoDB 7, Redis 7, Kafka 7.6, Zookeeper, Elasticsearch 8.13
+- **All 9 backend services**: API Gateway + 8 microservices
+
+> **Note:** On first start, PostgreSQL automatically creates all required databases (`fintrack_auth`, `fintrack_users`, `fintrack_transactions`, `fintrack_analytics`, `fintrack_notifications`, `fintrack_currency`) via the init script at `infra/postgres/init-databases.sh`.
+
+Verify everything is running:
 
 ```bash
 docker-compose ps
 ```
 
----
+### If Docker builds fail (network issues)
 
-## 3. Backend Services
+If parallel builds saturate Docker networking, use the sequential build script:
 
-### Install dependencies (run once per service)
+```powershell
+# PowerShell (Windows)
+.\build.ps1
 
-```bash
-cd backend/api-gateway && npm install && cd ../..
-cd backend/services/auth-service && npm install && cd ../../..
-cd backend/services/user-service && npm install && cd ../../..
-cd backend/services/transaction-service && npm install && cd ../../..
-cd backend/services/analytics-service && npm install && cd ../../..
-cd backend/services/ai-recommendation-service && npm install && cd ../../..
-cd backend/services/notification-service && npm install && cd ../../..
-cd backend/services/receipt-ocr-service && npm install && cd ../../..
-cd backend/services/currency-service && npm install && cd ../../..
-cd backend/services/bank-integration-service && npm install && cd ../../..
+# Then start services
+docker-compose up -d
 ```
 
-Or install all at once (PowerShell):
+### Rebuild a specific service
+
+```bash
+docker-compose build --no-cache <service-name>
+docker-compose up -d <service-name>
+```
+
+---
+
+## 3. Start Infrastructure Only (for local development)
+
+If you prefer running backend services locally (outside Docker):
+
+```bash
+docker-compose up -d postgres mongodb redis zookeeper kafka elasticsearch
+```
+
+---
+
+## 4. Backend Services (Local Development)
+
+### Install dependencies (run once per service)
 
 ```powershell
 $services = @(
@@ -74,7 +91,7 @@ $services = @(
   "backend/services/currency-service",
   "backend/services/bank-integration-service"
 )
-foreach ($s in $services) { Push-Location $s; npm install; Pop-Location }
+foreach ($s in $services) { Push-Location $s; npm install --legacy-peer-deps; Pop-Location }
 ```
 
 ### Run individual services (dev mode)
@@ -118,55 +135,121 @@ docker-compose up -d
 
 ---
 
-## 4. Mobile App
+## 5. Mobile App
 
 ```bash
 cd mobile-app
 
 # Install dependencies
-npm install
+npm install --legacy-peer-deps
+
+# Start Metro bundler
+npx react-native start
+
+# In a separate terminal — run on Android
+npx react-native run-android
 
 # iOS (macOS only)
 cd ios && pod install && cd ..
-npm run ios
+npx react-native run-ios
+```
 
-# Android
-npm run android
+> **Tip:** If the Gradle build fails on Windows with a workspace move error, delete the cache:
+>
+> ```powershell
+> Remove-Item -Recurse -Force mobile-app\android\.gradle
+> ```
 
-# Start Metro bundler only
-npm start
+---
+
+## 6. Database Management UIs
+
+Three database dashboards are included in the Docker Compose stack for easy data inspection:
+
+### pgAdmin (PostgreSQL)
+
+- **URL:** [http://localhost:5050](http://localhost:5050)
+- **Login:** `admin@fintrack.ai` / `admin`
+- The FinTrack PostgreSQL server is pre-configured. On first login, enter the password `fintrack_dev` when prompted.
+- Browse all 6 databases: `fintrack_auth`, `fintrack_users`, `fintrack_transactions`, `fintrack_analytics`, `fintrack_notifications`, `fintrack_currency`
+
+### Mongo Express (MongoDB)
+
+- **URL:** [http://localhost:8083](http://localhost:8083)
+- No login required. Browse the `fintrack_receipts` database and receipt documents.
+
+### Redis Commander
+
+- **URL:** [http://localhost:8082](http://localhost:8082)
+- No login required. View cached FX rates, session data, and rate-limiting keys.
+
+> **Tip:** To start only the DB UIs without rebuilding services:
+>
+> ```bash
+> docker compose up -d pgadmin mongo-express redis-commander
+> ```
+
+---
+
+## 7. Seed Demo Data
+
+A demo user and realistic mock data are available for testing:
+
+```bash
+# Seed via SQL file (all databases at once)
+docker cp infra/postgres/seed-data.sql fintrack-ai-postgres-1:/tmp/seed-data.sql
+docker exec fintrack-ai-postgres-1 psql -U fintrack -f /tmp/seed-data.sql
+```
+
+This seeds:
+
+- **Demo user:** `demo@fintrack.ai` / `Demo@123`
+- **35 transactions** across 7 categories (food, transport, shopping, entertainment, utilities, health, income)
+- **6 monthly budgets** with realistic limits
+- **15 FX rate pairs** (USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY, INR, BRL, MXN)
+- **5 notification templates** and sample queued notifications
+- **User preferences** with budget alerts enabled
+
+Or register the demo user first, then seed manually:
+
+```bash
+# Register demo user via API
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@fintrack.ai","password":"Demo@123"}'
 ```
 
 ---
 
-## 5. Verify Services Are Running
+## 8. Verify Services Are Running
 
 ```bash
 # Health check (API Gateway)
 curl http://localhost:3000/api/v1/health
 
-# Test login
-curl -X POST http://localhost:3001/auth/register \
+# Register a test user (via gateway)
+curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"SecurePass123!"}'
 
-# Test transaction creation
-curl -X POST http://localhost:3003/transactions \
+# Login (via gateway)
+curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"userId":"<user-id>","amount":42.85,"currency":"USD","merchant":"Starbucks","category":"food","occurredAt":"2026-04-15T09:40:00Z"}'
+  -d '{"email":"test@example.com","password":"SecurePass123!"}'
 
-# Test AI categorization
-curl -X POST http://localhost:3005/insights/categorize \
+# Test AI categorization (via gateway)
+curl -X POST http://localhost:3000/api/v1/insights/categorize \
   -H "Content-Type: application/json" \
   -d '{"merchant":"Starbucks"}'
 
-# Test currency rates
-curl http://localhost:3008/currency/rates?base=USD
+# Direct service access (bypassing gateway)
+curl http://localhost:3001/auth/login  # Auth Service
+curl http://localhost:3008/currency/rates?base=USD  # Currency Service
 ```
 
 ---
 
-## 6. Run Tests
+## 9. Run Tests
 
 ```bash
 # Per service
@@ -178,7 +261,7 @@ cd mobile-app && npm test
 
 ---
 
-## 7. Lint
+## 10. Lint
 
 ```bash
 # Per service
@@ -190,7 +273,7 @@ cd mobile-app && npm run lint
 
 ---
 
-## 8. Build for Production
+## 11. Build for Production
 
 ```bash
 # Build a single service
@@ -202,7 +285,7 @@ docker build -t fintrack/auth-service:latest ./backend/services/auth-service
 
 ---
 
-## 9. Infrastructure (Terraform)
+## 12. Infrastructure (Terraform)
 
 ```bash
 cd infra/terraform
@@ -214,7 +297,7 @@ terraform apply -var="environment=dev"
 
 ---
 
-## 10. Kubernetes Deployment
+## 13. Kubernetes Deployment
 
 ```bash
 # Dev
@@ -243,6 +326,9 @@ kubectl apply -k infra/kubernetes/overlays/prod/
 | Receipt OCR Service       | 3007  |
 | Currency Service          | 3008  |
 | Bank Integration Service  | 3009  |
+| **pgAdmin**               | 5050  |
+| **Mongo Express**         | 8083  |
+| **Redis Commander**       | 8082  |
 | PostgreSQL                | 5432  |
 | MongoDB                   | 27017 |
 | Redis                     | 6379  |

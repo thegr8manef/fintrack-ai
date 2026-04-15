@@ -1,3 +1,13 @@
+/**
+ * Auth Service — Controller
+ *
+ * REST endpoints for authentication:
+ *   POST /auth/register  — Creates a new user account in the database
+ *   POST /auth/login     — Validates email/password, returns JWT + refresh token
+ *   POST /auth/refresh   — Accepts a refresh token, rotates it, issues new JWT
+ *
+ * All endpoints return: { accessToken, refreshToken, userId }
+ */
 import { Controller, Post, Body, HttpCode, HttpStatus } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 

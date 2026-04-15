@@ -1,3 +1,12 @@
+/**
+ * Transaction Service — Account Entity
+ *
+ * Represents a user's bank account in the 'accounts' table.
+ * Links to external bank providers (Plaid, open banking) via providerRef.
+ * Each account has a default currency for its transactions.
+ *
+ * Ready for bank-integration-service to populate.
+ */
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 @Entity("accounts")

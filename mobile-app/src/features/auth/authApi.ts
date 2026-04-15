@@ -1,3 +1,14 @@
+/**
+ * FinTrack AI — Auth API Slice (RTK Query)
+ *
+ * API endpoints for authentication:
+ *   POST /auth/login    — Login with email + password, returns tokens
+ *   POST /auth/register — Create account, returns tokens
+ *   POST /auth/refresh  — Refresh access token using refresh token
+ *
+ * All mutations return: { accessToken, refreshToken, userId }
+ * Used by LoginScreen to authenticate users.
+ */
 import { apiSlice } from "../../services/api";
 
 interface LoginRequest {
@@ -20,6 +31,13 @@ export const authApi = apiSlice.injectEndpoints({
         body: credentials,
       }),
     }),
+    register: builder.mutation<AuthResponse, LoginRequest>({
+      query: (credentials) => ({
+        url: "/auth/register",
+        method: "POST",
+        body: credentials,
+      }),
+    }),
     refresh: builder.mutation<AuthResponse, { refreshToken: string }>({
       query: (body) => ({
         url: "/auth/refresh",
@@ -30,4 +48,5 @@ export const authApi = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useLoginMutation, useRefreshMutation } = authApi;
+export const { useLoginMutation, useRegisterMutation, useRefreshMutation } =
+  authApi;

@@ -1,3 +1,19 @@
+/**
+ * Shared Observability — OpenTelemetry Tracing Setup
+ *
+ * Initializes distributed tracing and metrics collection using OpenTelemetry.
+ * Each microservice calls initTelemetry(serviceName) on startup to enable:
+ * - Trace exporting to an OTLP collector (Jaeger, Tempo, etc.)
+ * - Metric exporting for request counts, latency, etc.
+ * - Auto-instrumentation of HTTP, gRPC, database calls
+ *
+ * Configuration via env vars:
+ *   OTEL_EXPORTER_OTLP_ENDPOINT — Collector URL (default: localhost:4318)
+ *
+ * Gracefully shuts down on SIGTERM to flush pending telemetry.
+ *
+ * Status: Prepared but NOT yet integrated into any service's main.ts.
+ */
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";

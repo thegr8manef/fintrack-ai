@@ -1,3 +1,12 @@
+/**
+ * User Service — Controller
+ *
+ * REST endpoints for user profile and preferences management:
+ *   GET  /users/:id              — Returns full user profile
+ *   PUT  /users/:id              — Partial update of profile fields
+ *   GET  /users/:id/preferences  — Returns user notification/insight preferences
+ *   PUT  /users/:id/preferences  — Upsert preferences (creates if missing)
+ */
 import { Controller, Get, Put, Body, Param } from "@nestjs/common";
 import { UserService } from "./user.service";
 

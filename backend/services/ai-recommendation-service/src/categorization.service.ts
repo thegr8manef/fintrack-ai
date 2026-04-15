@@ -1,3 +1,15 @@
+/**
+ * AI Recommendation Service — Categorization
+ *
+ * Keyword-based merchant name → category mapping.
+ * Searches the merchant name (case-insensitive) against a dictionary
+ * of category keywords. Returns the matched category with a confidence
+ * score (0.85–0.99 for matches, 0.3 for uncategorized).
+ *
+ * Categories: food, transport, entertainment, shopping, utilities, health
+ *
+ * Future: Replace with ML model (e.g., text classifier) for better accuracy.
+ */
 import { Injectable } from "@nestjs/common";
 
 export interface CategorizationResult {

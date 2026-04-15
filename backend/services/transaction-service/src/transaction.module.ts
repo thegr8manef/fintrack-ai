@@ -1,3 +1,12 @@
+/**
+ * Transaction Service — Root Module
+ *
+ * Wires together the transaction management layer:
+ * - TypeORM: Connects to PostgreSQL (fintrack_transactions) with auto-sync in dev
+ * - Entities: Transaction (financial records), Account (bank accounts), Budget (spending limits)
+ * - KafkaProducerService: Emits events to Kafka for downstream consumers
+ * - TransactionController + TransactionService: CRUD + budget management
+ */
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { TransactionController } from "./transaction.controller";

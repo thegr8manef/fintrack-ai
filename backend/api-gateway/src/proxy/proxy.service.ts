@@ -1,3 +1,22 @@
+/**
+ * API Gateway — Proxy Service (Service Registry)
+ *
+ * Maintains a routing table that maps URL prefixes to downstream service URLs.
+ * Each route entry defines:
+ * - name:   Human-readable service identifier
+ * - url:    Target service base URL (configurable via environment variables)
+ * - prefix: The URL path prefix that triggers routing to this service
+ *
+ * Route Map:
+ *   /auth/*          → Auth Service         (port 3001)
+ *   /users/*         → User Service         (port 3002)
+ *   /transactions/*  → Transaction Service  (port 3003)
+ *   /analytics/*     → Analytics Service    (port 3004)
+ *   /insights/*      → AI Service           (port 3005)
+ *   /notifications/* → Notification Service (port 3006)
+ *   /receipts/*      → Receipt OCR Service  (port 3007)
+ *   /currency/*      → Currency Service     (port 3008)
+ */
 import { Injectable } from "@nestjs/common";
 
 interface ServiceRoute {

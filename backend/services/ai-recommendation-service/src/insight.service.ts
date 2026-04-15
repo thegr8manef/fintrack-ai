@@ -1,3 +1,16 @@
+/**
+ * AI Recommendation Service — Insight Generation
+ *
+ * Analyzes user spend data against budget limits to generate actionable insights.
+ *
+ * Logic:
+ * - Over 100% budget → overspending alert (high if >150%, medium otherwise)
+ * - Over 80% budget  → warning (low severity)
+ * - Under 80%        → no alert generated
+ *
+ * Returns an array of Insight objects with type, message, category, and severity.
+ * Consumed by the mobile app to display AI recommendations on the Analytics screen.
+ */
 import { Injectable } from "@nestjs/common";
 
 export interface Insight {

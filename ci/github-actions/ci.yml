@@ -1,3 +1,24 @@
+# =============================================================================
+# FinTrack AI — CI/CD Pipeline (GitHub Actions)
+# =============================================================================
+#
+# Triggered on:
+#   - Pull requests to main/develop: Lint + Test
+#   - Push to main: Lint + Test + Build + Push to ECR + Deploy to dev
+#
+# Jobs:
+# 1. lint-and-test:  Matrix build across all 9 services
+#    - Install deps, run linting, run Jest tests
+# 2. build-and-push: Build Docker images, push to AWS ECR
+#    - Only runs on merge to main (after tests pass)
+#    - Tags images with git SHA for traceability
+# 3. deploy-dev:     Deploy to EKS dev cluster via kubectl + Kustomize
+# 4. mobile-check:   Install and type-check the mobile app
+#
+# Secrets Required:
+#   AWS_ROLE_ARN — IAM role for ECR push and EKS deploy
+# =============================================================================
+
 name: CI Pipeline
 
 on:

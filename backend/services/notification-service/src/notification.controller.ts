@@ -1,3 +1,10 @@
+/**
+ * Notification Service — Controller
+ *
+ * REST endpoints for notification management:
+ *   POST /notifications         — Enqueue a notification with userId, channel, and payload
+ *   GET  /notifications/pending — Fetch up to 50 pending notifications for delivery
+ */
 import { Controller, Post, Body, Get } from "@nestjs/common";
 import { NotificationService } from "./notification.service";
 

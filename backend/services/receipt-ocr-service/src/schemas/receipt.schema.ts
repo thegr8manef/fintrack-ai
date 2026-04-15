@@ -1,3 +1,19 @@
+/**
+ * Receipt OCR Service — Receipt Schema (MongoDB/Mongoose)
+ *
+ * Document schema for receipt storage:
+ * - userId:        Owner of the receipt
+ * - imageUrl:      URL to the uploaded receipt image (S3 in production)
+ * - merchant:      Extracted merchant name (from OCR)
+ * - total:         Extracted total amount
+ * - currency:      Currency code (default: 'USD')
+ * - tax:           Extracted tax amount
+ * - items:         Array of line items { name, quantity, price }
+ * - purchasedAt:   Date of purchase
+ * - ocrConfidence: OCR extraction confidence score (0–1)
+ *
+ * Auto-generates createdAt/updatedAt via { timestamps: true }
+ */
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 

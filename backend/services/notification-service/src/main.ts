@@ -1,3 +1,18 @@
+/**
+ * Notification Service — Entry Point (Port 3006)
+ *
+ * Multi-channel notification orchestration service.
+ * Manages a queue of notifications to be delivered via push, email, SMS, or in-app.
+ * Uses PostgreSQL (fintrack_notifications) for queue persistence and template storage.
+ *
+ * Endpoints:
+ *   POST /notifications         — Enqueue a notification for delivery
+ *   GET  /notifications/pending — Fetch pending notifications (for delivery workers)
+ *
+ * Status: Queue infrastructure ready. Delivery channels (Twilio, SendGrid, FCM)
+ * are not yet implemented.
+ */
+import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import {
   FastifyAdapter,

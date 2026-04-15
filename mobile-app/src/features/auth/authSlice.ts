@@ -1,3 +1,16 @@
+/**
+ * FinTrack AI — Auth State Slice (Redux Toolkit)
+ *
+ * Manages authentication state:
+ * - isAuthenticated: Boolean flag for auth-gated navigation
+ * - accessToken:     JWT for API Authorization header
+ * - refreshToken:    Token for refreshing expired access tokens
+ * - userId:          Current user's UUID (used to fetch user-specific data)
+ *
+ * Actions:
+ * - setCredentials(): Called after successful login/register
+ * - logout():         Clears all auth state, returns user to login screen
+ */
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface AuthState {

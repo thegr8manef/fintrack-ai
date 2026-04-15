@@ -1,3 +1,41 @@
+# =============================================================================
+# FinTrack AI — Docker Compose (Development Environment)
+# =============================================================================
+#
+# Spins up the entire FinTrack AI platform locally:
+#
+# Infrastructure:
+#   - PostgreSQL 16:    Primary database for auth, users, transactions, analytics,
+#                       notifications, and currency services (port 5432)
+#   - MongoDB 7:        Document store for receipt OCR service (port 27017)
+#   - Redis 7:          Cache layer for currency rates, sessions, rate limiting (port 6379)
+#   - Zookeeper:        Kafka coordination (port 2181)
+#   - Kafka 7.6:        Event streaming for async service communication (port 9092)
+#   - Elasticsearch 8:  Search and analytics engine for spend aggregation (port 9200)
+#
+# Microservices (9 services + 1 gateway):
+#   - api-gateway (3000):            Single entry point, rate limiting, request routing
+#   - auth-service (3001):           JWT authentication, registration, token refresh
+#   - user-service (3002):           User profiles and preferences
+#   - transaction-service (3003):    Financial transactions and budgets
+#   - analytics-service (3004):      Spend analytics via Elasticsearch
+#   - ai-recommendation-service (3005): AI categorization and insights
+#   - notification-service (3006):   Multi-channel notification queue
+#   - receipt-ocr-service (3007):    Receipt image upload and OCR
+#   - currency-service (3008):       FX rates and currency conversion
+#
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose down           # Stop all services
+#   docker-compose down -v        # Stop + delete volumes (reset databases)
+#
+# Database UIs:
+#   pgAdmin:          http://localhost:5050  (admin@fintrack.ai / admin)
+#   Mongo Express:    http://localhost:8083
+#   Redis Commander:  http://localhost:8082
+#
+# =============================================================================
+
 services:
   # --- Infrastructure ---
   postgres:
@@ -10,6 +48,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
 
   mongodb:
     image: mongo:7
@@ -51,6 +90,41 @@ services:
     volumes:
       - esdata:/usr/share/elasticsearch/data
 
+  # --- Database UI Tools ---
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    depends_on:
+      - postgres
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fintrack.ai
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./infra/pgadmin/servers.json:/pgadmin4/servers.json
+
+  mongo-express:
+    image: mongo-express:1.0
+    depends_on:
+      - mongodb
+    ports:
+      - "8083:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017
+      ME_CONFIG_BASICAUTH: "false"
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    depends_on:
+      - redis
+    ports:
+      - "8082:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+
   # --- Services ---
   api-gateway:
     build: ./backend/api-gateway
@@ -62,6 +136,14 @@ services:
       - NODE_ENV=development
       - PORT=3000
       - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
+      - TRANSACTION_SERVICE_URL=http://transaction-service:3003
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3004
+      - AI_SERVICE_URL=http://ai-recommendation-service:3005
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3006
+      - RECEIPT_SERVICE_URL=http://receipt-ocr-service:3007
+      - CURRENCY_SERVICE_URL=http://currency-service:3008
 
   auth-service:
     build: ./backend/services/auth-service
@@ -177,3 +259,4 @@ volumes:
   pgdata:
   mongodata:
   esdata:
+  pgadmin_data:

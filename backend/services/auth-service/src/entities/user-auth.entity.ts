@@ -1,3 +1,13 @@
+/**
+ * Auth Service — UserAuth Entity
+ *
+ * Represents a user's authentication credentials in the 'users_auth' table.
+ * Stores email (unique, indexed), bcrypt password hash, and optional
+ * OAuth provider / MFA flags for future expansion.
+ *
+ * Note: This is separate from the User entity in user-service.
+ * Auth-service owns credentials; user-service owns profile data.
+ */
 import {
   Entity,
   PrimaryGeneratedColumn,

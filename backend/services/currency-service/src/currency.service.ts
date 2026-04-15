@@ -1,3 +1,14 @@
+/**
+ * Currency Service — Business Logic
+ *
+ * Two-tier FX rate lookup with Redis caching:
+ * - getRate():  Checks Redis cache first (key: fx:<base>:<quote>)
+ *               Falls back to PostgreSQL on cache miss, then caches for 3600s
+ * - getRates(): Returns all rates for a base currency from DB
+ * - convert():  Calculates amount * rate, returns null if rate not found
+ *
+ * Rate data must be seeded manually or via an external FX rate API.
+ */
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";

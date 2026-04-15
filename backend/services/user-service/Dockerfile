@@ -1,3 +1,13 @@
+# =============================================================================
+# User Service — Dockerfile (Multi-stage Build)
+#
+# Stage 1 (builder): Installs dependencies and compiles TypeScript
+# Stage 2 (production): Minimal runtime image with compiled JS only
+#
+# Requires: PostgreSQL (fintrack_users database)
+# Port: 3002
+# =============================================================================
+
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./

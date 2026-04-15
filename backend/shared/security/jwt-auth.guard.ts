@@ -1,3 +1,19 @@
+/**
+ * Shared Security — JWT Authentication Guard
+ *
+ * NestJS guard that validates JWT Bearer tokens on protected routes.
+ * Extracts the token from the Authorization header, verifies it with
+ * the shared JWT_SECRET, and attaches the decoded payload to request.user.
+ *
+ * Usage: @UseGuards(JwtAuthGuard) on controllers or specific routes.
+ *
+ * Security:
+ * - Rejects requests without Authorization header
+ * - Rejects non-Bearer token schemes
+ * - Throws UnauthorizedException for expired or invalid tokens
+ *
+ * Status: Prepared but NOT yet applied globally to any service.
+ */
 import {
   CanActivate,
   ExecutionContext,

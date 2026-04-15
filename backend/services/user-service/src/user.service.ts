@@ -1,3 +1,13 @@
+/**
+ * User Service — Business Logic
+ *
+ * Handles user profile CRUD and preference management:
+ * - getProfile():        Find user by ID, throw 404 if missing
+ * - updateProfile():     Partial update on user fields, return updated profile
+ * - getPreferences():    Fetch preferences by userId
+ * - updatePreferences(): Upsert — creates preferences if they don't exist,
+ *                        updates if they do (idempotent operation)
+ */
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";

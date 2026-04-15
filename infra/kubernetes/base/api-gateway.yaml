@@ -1,3 +1,19 @@
+# =============================================================================
+# FinTrack AI — Kubernetes Base Manifests (API Gateway)
+# =============================================================================
+#
+# Defines the Kubernetes resources for the API Gateway:
+#
+# 1. Namespace: 'fintrack' — Isolates all FinTrack resources
+# 2. Deployment: 2 replicas, 128Mi-256Mi memory, 100m-500m CPU
+#    - Liveness probe:  GET /api/v1/health (15s initial, 10s period)
+#    - Readiness probe: GET /api/v1/health (5s initial, 5s period)
+# 3. Service: LoadBalancer exposing port 80 → container 3000
+# 4. HPA: Auto-scales 2–10 replicas at 70% CPU utilization
+#
+# Applied via Kustomize: kubectl apply -k infra/kubernetes/overlays/dev/
+# =============================================================================
+
 apiVersion: v1
 kind: Namespace
 metadata:

@@ -1,3 +1,19 @@
+/**
+ * Shared Security — RBAC Roles Guard
+ *
+ * NestJS guard for role-based access control (RBAC).
+ * Uses the @SetMetadata('roles', ['admin']) decorator to define
+ * required roles on controller methods. Checks request.user.roles
+ * (set by JwtAuthGuard) against required roles.
+ *
+ * Usage:
+ *   @SetMetadata('roles', ['admin'])
+ *   @UseGuards(JwtAuthGuard, RolesGuard)
+ *
+ * Returns 403 Forbidden if user lacks required roles.
+ *
+ * Status: Prepared but NOT yet applied to any service.
+ */
 import {
   CanActivate,
   ExecutionContext,

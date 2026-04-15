@@ -1,3 +1,14 @@
+/**
+ * FinTrack AI — Transaction API Slice (RTK Query)
+ *
+ * Endpoints for transaction management:
+ *   GET    /transactions?userId=&page=&limit=  — Paginated list
+ *   POST   /transactions                       — Create (returns AI categorization)
+ *   DELETE /transactions/:id                    — Delete transaction
+ *
+ * Uses tag-based cache invalidation: creating or deleting a transaction
+ * automatically refetches the transaction list.
+ */
 import { apiSlice } from "../../services/api";
 import type { Transaction } from "./transactionSlice";
 
@@ -22,10 +33,10 @@ export const transactionApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getTransactions: builder.query<
       Transaction[],
-      { page?: number; limit?: number }
+      { userId: string; page?: number; limit?: number }
     >({
-      query: ({ page = 1, limit = 20 }) =>
-        `/transactions?page=${page}&limit=${limit}`,
+      query: ({ userId, page = 1, limit = 20 }) =>
+        `/transactions?userId=${userId}&page=${page}&limit=${limit}`,
       providesTags: ["Transaction"],
     }),
     createTransaction: builder.mutation<

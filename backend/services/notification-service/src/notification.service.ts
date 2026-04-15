@@ -1,3 +1,15 @@
+/**
+ * Notification Service — Business Logic
+ *
+ * Queue-based notification management:
+ * - enqueue():    Creates a pending notification in the database
+ * - getPending():  Fetches up to N pending notifications ordered by scheduledAt
+ * - markSent():    Updates notification status to 'sent' after successful delivery
+ * - markFailed():  Increments retry count and marks as 'failed' for retry logic
+ *
+ * Delivery channels (push, email, SMS) are NOT implemented yet.
+ * This service only manages the queue state.
+ */
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";

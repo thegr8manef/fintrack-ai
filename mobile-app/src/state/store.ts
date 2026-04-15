@@ -1,3 +1,15 @@
+/**
+ * FinTrack AI — Redux Store Configuration
+ *
+ * Combines all state slices and API middleware:
+ * - auth:         Authentication state (tokens, userId, isAuthenticated)
+ * - user:         User profile and preferences
+ * - transactions: Local transaction cache
+ * - [apiSlice]:   RTK Query cache for all API calls
+ *
+ * RTK Query middleware handles automatic cache invalidation,
+ * request deduplication, and background refetching.
+ */
 import { configureStore } from "@reduxjs/toolkit";
 import { transactionSlice } from "../features/transactions/transactionSlice";
 import { authSlice } from "../features/auth/authSlice";

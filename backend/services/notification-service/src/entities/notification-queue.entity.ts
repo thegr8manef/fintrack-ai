@@ -1,3 +1,16 @@
+/**
+ * Notification Service — NotificationQueue Entity
+ *
+ * Represents a queued notification in the 'notification_queue' table.
+ *
+ * Fields:
+ * - userId:      Target user for the notification
+ * - channel:     Delivery channel ('push', 'email', 'sms', 'in-app')
+ * - payload:     JSON payload with notification data
+ * - status:      'pending' | 'sent' | 'failed'
+ * - retryCount:  Number of delivery attempts (incremented on failure)
+ * - scheduledAt: When the notification should be delivered
+ */
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 @Entity("notification_queue")

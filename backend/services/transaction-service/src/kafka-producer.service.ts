@@ -1,3 +1,20 @@
+/**
+ * Transaction Service — Kafka Producer
+ *
+ * Manages the Kafka producer connection lifecycle:
+ * - Connects on module init, disconnects on module destroy
+ * - emit(): Sends structured events to a Kafka topic
+ *
+ * Event format:
+ * {
+ *   eventType: "TransactionCreated",
+ *   eventId:   "evt_<timestamp>",
+ *   occurredAt: ISO timestamp,
+ *   payload:   { transactionId, userId, amount, currency, category }
+ * }
+ *
+ * Consumed by: analytics-service, notification-service, ai-recommendation-service
+ */
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { Kafka, Producer } from "kafkajs";
 

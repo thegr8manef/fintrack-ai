@@ -1,3 +1,11 @@
+/**
+ * Currency Service — Controller
+ *
+ * REST endpoints for FX rate management:
+ *   GET /currency/rates?base=USD — Returns all FX rates for the given base currency
+ *   GET /currency/convert?amount=100&from=USD&to=EUR
+ *       — Converts an amount, returns { from, to, amount, converted }
+ */
 import { Controller, Get, Query } from "@nestjs/common";
 import { CurrencyService } from "./currency.service";
 
