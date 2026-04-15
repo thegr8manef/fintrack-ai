@@ -1,9 +1,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps && test -f node_modules/.bin/nest
 COPY . .
-RUN npx nest build
+RUN ./node_modules/.bin/nest build
 
 FROM node:20-alpine
 WORKDIR /app

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-interface CategorizationResult {
+export interface CategorizationResult {
   suggested: string;
   confidence: number;
 }
