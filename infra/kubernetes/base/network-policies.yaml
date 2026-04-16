@@ -1,0 +1,186 @@
+# =============================================================================
+# FinTrack AI — Network Policies (Kubernetes Base Manifest)
+# =============================================================================
+# Zero-trust network segmentation: deny all by default, then whitelist.
+# Only the API Gateway is publicly reachable; backend services and
+# data stores are restricted to authorized callers only.
+# =============================================================================
+
+# ---- Default Deny All Ingress ----
+# Blocks all incoming traffic unless explicitly allowed.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: fintrack
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# ---- Allow Ingress → API Gateway ----
+# External traffic (via Ingress controller) can reach the API Gateway.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-api-gateway
+  namespace: fintrack
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  ingress:
+    - ports:
+        - port: 3000
+  policyTypes:
+    - Ingress
+---
+# ---- Allow API Gateway → Backend Services ----
+# The API Gateway can reach all backend microservices.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-gateway-to-backend
+  namespace: fintrack
+spec:
+  podSelector:
+    matchLabels:
+      tier: backend
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+      ports:
+        - port: 3001
+        - port: 3002
+        - port: 3003
+        - port: 3004
+        - port: 3005
+        - port: 3006
+        - port: 3007
+        - port: 3008
+        - port: 3009
+  policyTypes:
+    - Ingress
+---
+# ---- Allow Backend Services → PostgreSQL ----
+# Only backend-tier pods can connect to PostgreSQL.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-postgres
+  namespace: fintrack
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              tier: backend
+      ports:
+        - port: 5432
+  policyTypes:
+    - Ingress
+---
+# ---- Allow Backend Services → Redis ----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-redis
+  namespace: fintrack
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              tier: backend
+      ports:
+        - port: 6379
+  policyTypes:
+    - Ingress
+---
+# ---- Allow Backend Services → MongoDB ----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-mongodb
+  namespace: fintrack
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              tier: backend
+      ports:
+        - port: 27017
+  policyTypes:
+    - Ingress
+---
+# ---- Allow Backend Services → Kafka ----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-kafka
+  namespace: fintrack
+spec:
+  podSelector:
+    matchLabels:
+      app: kafka
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              tier: backend
+      ports:
+        - port: 9092
+  policyTypes:
+    - Ingress
+---
+# ---- Allow Kafka → Zookeeper ----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kafka-to-zookeeper
+  namespace: fintrack
+spec:
+  podSelector:
+    matchLabels:
+      app: zookeeper
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - port: 2181
+  policyTypes:
+    - Ingress
+---
+# ---- Allow Backend Services → Elasticsearch ----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-elasticsearch
+  namespace: fintrack
+spec:
+  podSelector:
+    matchLabels:
+      app: elasticsearch
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              tier: backend
+      ports:
+        - port: 9200
+  policyTypes:
+    - Ingress

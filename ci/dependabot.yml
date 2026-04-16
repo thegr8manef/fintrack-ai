@@ -1,0 +1,124 @@
+# =============================================================================
+# FinTrack AI — Dependabot Configuration
+# =============================================================================
+#
+# Automatically creates PRs when dependencies have new versions.
+# Groups minor/patch updates together to reduce PR noise.
+#
+# Scanned ecosystems:
+#   - npm: All 9 backend services + mobile app
+#   - docker: All Dockerfiles (base image updates)
+#   - github-actions: CI workflow action versions
+#
+# Schedule: Weekly checks on Monday at 06:00 UTC
+# =============================================================================
+
+version: 2
+updates:
+  # --- Backend Services (npm) ---
+  - package-ecosystem: "npm"
+    directory: "/backend/api-gateway"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend:gateway"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/backend/services/auth-service"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend:auth"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/backend/services/user-service"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend:users"]
+
+  - package-ecosystem: "npm"
+    directory: "/backend/services/transaction-service"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend:transactions"]
+
+  - package-ecosystem: "npm"
+    directory: "/backend/services/analytics-service"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend:analytics"]
+
+  - package-ecosystem: "npm"
+    directory: "/backend/services/ai-recommendation-service"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend:ai"]
+
+  - package-ecosystem: "npm"
+    directory: "/backend/services/notification-service"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend:notifications"]
+
+  - package-ecosystem: "npm"
+    directory: "/backend/services/receipt-ocr-service"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend:ocr"]
+
+  - package-ecosystem: "npm"
+    directory: "/backend/services/currency-service"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend:currency"]
+
+  # --- Mobile App (npm) ---
+  - package-ecosystem: "npm"
+    directory: "/mobile-app"
+    schedule:
+      interval: "weekly"
+    groups:
+      react-native:
+        patterns: ["react-native*", "@react-native*", "@react-navigation*"]
+      redux:
+        patterns: ["@reduxjs*", "react-redux"]
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "mobile"]
+    open-pull-requests-limit: 5
+
+  # --- GitHub Actions (action versions) ---
+  - package-ecosystem: "github-actions"
+    directory: "/ci/github-actions"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]

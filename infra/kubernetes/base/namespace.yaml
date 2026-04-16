@@ -1,0 +1,13 @@
+# =============================================================================
+# FinTrack AI — Namespace (Kubernetes Base Manifest)
+# =============================================================================
+# Dedicated namespace isolating all FinTrack resources from other workloads.
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fintrack
+  labels:
+    app: fintrack
+    istio-injection: enabled

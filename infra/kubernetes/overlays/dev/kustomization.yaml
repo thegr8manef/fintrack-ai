@@ -1,3 +1,10 @@
+# =============================================================================
+# FinTrack AI — Dev Overlay
+# =============================================================================
+# Minimal resource footprint: 1 replica per service, reduced limits.
+# Usage: kubectl apply -k infra/kubernetes/overlays/dev/
+# =============================================================================
+
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -7,6 +14,7 @@ resources:
 namePrefix: dev-
 namespace: fintrack-dev
 
+# ---- Force single replica for all Deployments in dev ----
 patches:
   - patch: |-
       - op: replace
@@ -14,3 +22,26 @@ patches:
         value: 1
     target:
       kind: Deployment
+
+  # Disable HPA in dev (single replica is enough)
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+    target:
+      kind: HorizontalPodAutoscaler
+
+  # Use dev log level
+  - patch: |-
+      - op: replace
+        path: /data/log-level
+        value: "debug"
+      - op: replace
+        path: /data/node-env
+        value: "development"
+    target:
+      kind: ConfigMap
+      name: fintrack-config

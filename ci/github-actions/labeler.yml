@@ -1,0 +1,73 @@
+# =============================================================================
+# FinTrack AI — PR Labeler Rules
+# =============================================================================
+# Maps file path patterns to GitHub labels.
+# Used by .github/workflows/pr-labeler.yml
+# =============================================================================
+
+# --- Backend Services ---
+"backend:gateway":
+  - changed-files:
+      - any-glob-to-any-file: "backend/api-gateway/**"
+
+"backend:auth":
+  - changed-files:
+      - any-glob-to-any-file: "backend/services/auth-service/**"
+
+"backend:users":
+  - changed-files:
+      - any-glob-to-any-file: "backend/services/user-service/**"
+
+"backend:transactions":
+  - changed-files:
+      - any-glob-to-any-file: "backend/services/transaction-service/**"
+
+"backend:analytics":
+  - changed-files:
+      - any-glob-to-any-file: "backend/services/analytics-service/**"
+
+"backend:ai":
+  - changed-files:
+      - any-glob-to-any-file: "backend/services/ai-recommendation-service/**"
+
+"backend:notifications":
+  - changed-files:
+      - any-glob-to-any-file: "backend/services/notification-service/**"
+
+"backend:ocr":
+  - changed-files:
+      - any-glob-to-any-file: "backend/services/receipt-ocr-service/**"
+
+"backend:currency":
+  - changed-files:
+      - any-glob-to-any-file: "backend/services/currency-service/**"
+
+"backend:shared":
+  - changed-files:
+      - any-glob-to-any-file: "backend/shared/**"
+
+# --- Mobile App ---
+"mobile":
+  - changed-files:
+      - any-glob-to-any-file: "mobile-app/**"
+
+# --- Infrastructure ---
+"infra":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "infra/**"
+          - "docker-compose.yml"
+          - "**/Dockerfile"
+          - "**/.dockerignore"
+
+# --- CI/CD ---
+"ci":
+  - changed-files:
+      - any-glob-to-any-file: "ci/**"
+
+# --- Documentation ---
+"docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.md"
+          - "**/*.md"

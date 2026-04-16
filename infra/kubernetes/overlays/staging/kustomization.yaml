@@ -1,3 +1,10 @@
+# =============================================================================
+# FinTrack AI — Staging Overlay
+# =============================================================================
+# Production-like environment with moderate resources for QA & integration.
+# Usage: kubectl apply -k infra/kubernetes/overlays/staging/
+# =============================================================================
+
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -6,3 +13,27 @@ resources:
 
 namePrefix: staging-
 namespace: fintrack-staging
+
+patches:
+  # 2 replicas for all services in staging
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+
+  # Staging-specific ingress host
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: "staging-api.fintrack.ai"
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: "staging-api.fintrack.ai"
+      - op: replace
+        path: /spec/tls/0/secretName
+        value: "fintrack-staging-tls"
+    target:
+      kind: Ingress
+      name: fintrack-ingress

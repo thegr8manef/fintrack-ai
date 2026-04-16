@@ -1,0 +1,121 @@
+# =============================================================================
+# FinTrack AI — PostgreSQL StatefulSet (Kubernetes Base Manifest)
+# =============================================================================
+# Primary relational store for auth, users, transactions, analytics,
+# currency, and bank-integration databases.
+# Uses init-databases.sh to create all 6 databases on first boot.
+# =============================================================================
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: fintrack
+  labels:
+    app: postgres
+    tier: data
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        tier: data
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: fintrack-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fintrack-secrets
+                  key: postgres-password
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - fintrack
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - fintrack
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: postgres-init-scripts
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: fintrack
+  labels:
+    app: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+  type: ClusterIP
+---
+# ConfigMap holding the init-databases.sh script
+# In production, replace with a Helm chart or external DB.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: fintrack
+data:
+  init-databases.sh: |
+    #!/bin/bash
+    set -e
+    # Create all FinTrack databases needed by microservices
+    for db in fintrack_auth fintrack_users fintrack_transactions fintrack_analytics fintrack_currency fintrack_bank fintrack_notifications; do
+      echo "Creating database: $db"
+      psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+        CREATE DATABASE $db;
+        GRANT ALL PRIVILEGES ON DATABASE $db TO $POSTGRES_USER;
+    EOSQL
+    done

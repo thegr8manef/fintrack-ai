@@ -1,0 +1,40 @@
+# =============================================================================
+# FinTrack AI — PR Auto-Labeler (GitHub Actions)
+# =============================================================================
+#
+# Automatically labels pull requests based on changed file paths.
+# Helps reviewers quickly identify which services/areas are affected.
+#
+# Labels Applied:
+#   backend:gateway       — Changes to API gateway
+#   backend:auth          — Changes to auth-service
+#   backend:users         — Changes to user-service
+#   backend:transactions  — Changes to transaction-service
+#   backend:analytics     — Changes to analytics-service
+#   backend:ai            — Changes to AI recommendation service
+#   backend:notifications — Changes to notification-service
+#   backend:ocr           — Changes to receipt OCR service
+#   backend:currency      — Changes to currency-service
+#   mobile                — Changes to React Native app
+#   infra                 — Changes to Terraform, K8s, Docker
+#   ci                    — Changes to CI/CD configuration
+#   docs                  — Changes to documentation files
+# =============================================================================
+
+name: PR Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Label PR based on changed files
+        uses: actions/labeler@v5
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"

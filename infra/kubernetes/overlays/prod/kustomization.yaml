@@ -1,3 +1,11 @@
+# =============================================================================
+# FinTrack AI — Production Overlay
+# =============================================================================
+# High-availability: 3 replicas, stricter resource limits, pod disruption
+# budgets, and production-grade ingress configuration.
+# Usage: kubectl apply -k infra/kubernetes/overlays/prod/
+# =============================================================================
+
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -8,9 +16,42 @@ namePrefix: prod-
 namespace: fintrack-prod
 
 patches:
+  # 3 replicas for all services in production
   - patch: |-
       - op: replace
         path: /spec/replicas
         value: 3
     target:
       kind: Deployment
+
+  # Higher HPA ceilings in production
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 10
+    target:
+      kind: HorizontalPodAutoscaler
+
+  # Production ingress host
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: "api.fintrack.ai"
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: "api.fintrack.ai"
+    target:
+      kind: Ingress
+      name: fintrack-ingress
+
+  # Production log level
+  - patch: |-
+      - op: replace
+        path: /data/log-level
+        value: "warn"
+    target:
+      kind: ConfigMap
+      name: fintrack-config

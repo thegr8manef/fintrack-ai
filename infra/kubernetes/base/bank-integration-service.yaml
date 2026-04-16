@@ -1,0 +1,111 @@
+# =============================================================================
+# FinTrack AI — Bank Integration Service (Kubernetes Base Manifest)
+# =============================================================================
+# Open Banking / Plaid integration for account linking and sync.
+# Connects to PostgreSQL (fintrack_bank) and Kafka.
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bank-integration-service
+  namespace: fintrack
+  labels:
+    app: bank-integration-service
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bank-integration-service
+  template:
+    metadata:
+      labels:
+        app: bank-integration-service
+        tier: backend
+    spec:
+      containers:
+        - name: bank-integration-service
+          image: fintrack/bank-integration-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3009
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3009"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fintrack-secrets
+                  key: bank-database-url
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: fintrack-config
+                  key: kafka-brokers
+            - name: PLAID_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: fintrack-secrets
+                  key: plaid-client-id
+            - name: PLAID_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fintrack-secrets
+                  key: plaid-secret
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            tcpSocket:
+              port: 3009
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 3009
+            initialDelaySeconds: 10
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bank-integration-service
+  namespace: fintrack
+  labels:
+    app: bank-integration-service
+spec:
+  selector:
+    app: bank-integration-service
+  ports:
+    - port: 3009
+      targetPort: 3009
+      name: http
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bank-integration-service-hpa
+  namespace: fintrack
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bank-integration-service
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75

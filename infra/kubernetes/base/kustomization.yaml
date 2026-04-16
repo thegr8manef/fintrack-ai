@@ -12,9 +12,39 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  # ---- Namespace ----
+  - namespace.yaml
+
+  # ---- Microservices ----
   - api-gateway.yaml
+  - auth-service.yaml
+  - user-service.yaml
+  - transaction-service.yaml
+  - analytics-service.yaml
+  - ai-recommendation-service.yaml
+  - notification-service.yaml
+  - receipt-ocr-service.yaml
+  - currency-service.yaml
+  - bank-integration-service.yaml
+
+  # ---- Infrastructure (Data Stores) ----
+  - postgres.yaml
+  - redis.yaml
+  - mongodb.yaml
+  - kafka.yaml
+  - elasticsearch.yaml
+
+  # ---- Configuration & Secrets ----
+  - configmap.yaml
+  - secrets.yaml
+
+  # ---- Networking ----
+  - ingress.yaml
+  - network-policies.yaml
 
 namespace: fintrack
 
-commonLabels:
-  project: fintrack
+labels:
+  - pairs:
+      project: fintrack
+    includeSelectors: false

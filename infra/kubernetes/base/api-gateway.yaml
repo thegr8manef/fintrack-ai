@@ -1,29 +1,20 @@
 # =============================================================================
-# FinTrack AI — Kubernetes Base Manifests (API Gateway)
+# FinTrack AI — API Gateway (Kubernetes Base Manifest)
 # =============================================================================
-#
-# Defines the Kubernetes resources for the API Gateway:
-#
-# 1. Namespace: 'fintrack' — Isolates all FinTrack resources
-# 2. Deployment: 2 replicas, 128Mi-256Mi memory, 100m-500m CPU
-#    - Liveness probe:  GET /api/v1/health (15s initial, 10s period)
-#    - Readiness probe: GET /api/v1/health (5s initial, 5s period)
-# 3. Service: LoadBalancer exposing port 80 → container 3000
-# 4. HPA: Auto-scales 2–10 replicas at 70% CPU utilization
-#
-# Applied via Kustomize: kubectl apply -k infra/kubernetes/overlays/dev/
+# Entry point for all client requests. Proxies to internal microservices.
+# Deployment: 2 replicas, 128Mi-256Mi memory, 100m-500m CPU
+# Service: ClusterIP on port 3000 (exposed externally via Ingress)
+# HPA: Auto-scales 2–10 replicas at 70% CPU utilization
 # =============================================================================
 
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: fintrack
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-gateway
   namespace: fintrack
+  labels:
+    app: api-gateway
+    tier: gateway
 spec:
   replicas: 2
   selector:
@@ -37,6 +28,7 @@ spec:
       containers:
         - name: api-gateway
           image: fintrack/api-gateway:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           env:
@@ -44,6 +36,46 @@ spec:
               value: "production"
             - name: PORT
               value: "3000"
+            - name: AUTH_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: fintrack-config
+                  key: auth-service-url
+            - name: USER_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: fintrack-config
+                  key: user-service-url
+            - name: TRANSACTION_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: fintrack-config
+                  key: transaction-service-url
+            - name: ANALYTICS_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: fintrack-config
+                  key: analytics-service-url
+            - name: AI_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: fintrack-config
+                  key: ai-service-url
+            - name: NOTIFICATION_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: fintrack-config
+                  key: notification-service-url
+            - name: RECEIPT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: fintrack-config
+                  key: receipt-ocr-service-url
+            - name: CURRENCY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: fintrack-config
+                  key: currency-service-url
           resources:
             requests:
               memory: "128Mi"
@@ -73,9 +105,10 @@ spec:
   selector:
     app: api-gateway
   ports:
-    - port: 80
+    - port: 3000
       targetPort: 3000
-  type: LoadBalancer
+      name: http
+  type: ClusterIP
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

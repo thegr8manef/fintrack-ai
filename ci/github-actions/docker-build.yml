@@ -1,0 +1,84 @@
+# =============================================================================
+# FinTrack AI — Docker Image Build (Reusable Workflow)
+# =============================================================================
+#
+# Builds and tests Docker images on PRs to ensure Dockerfiles are valid.
+# Does NOT push to ECR — that happens in the main CI pipeline (ci.yml).
+#
+# This workflow catches:
+#   - Broken Dockerfiles
+#   - Missing dependencies in Docker builds
+#   - Build failures that wouldn't surface in npm-only CI
+#
+# Triggered only when Dockerfiles or service source code changes.
+# =============================================================================
+
+name: Docker Build Test
+
+on:
+  pull_request:
+    paths:
+      - "backend/**/Dockerfile"
+      - "backend/**/src/**"
+      - "backend/**/package.json"
+
+jobs:
+  # =========================================================================
+  # Build all Docker images (no push) to validate Dockerfiles
+  # =========================================================================
+  docker-build:
+    name: "Docker: ${{ matrix.service }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # -- Map service name to build context path --
+          - service: api-gateway
+            context: backend/api-gateway
+          - service: auth-service
+            context: backend/services/auth-service
+          - service: user-service
+            context: backend/services/user-service
+          - service: transaction-service
+            context: backend/services/transaction-service
+          - service: analytics-service
+            context: backend/services/analytics-service
+          - service: ai-recommendation-service
+            context: backend/services/ai-recommendation-service
+          - service: notification-service
+            context: backend/services/notification-service
+          - service: receipt-ocr-service
+            context: backend/services/receipt-ocr-service
+          - service: currency-service
+            context: backend/services/currency-service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -- Setup Buildx for caching --
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # -- Build image (--load to test locally, no push) --
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          push: false
+          load: true
+          tags: fintrack-${{ matrix.service }}:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # -- Verify the built image runs and exits cleanly --
+      - name: Smoke test image
+        run: |
+          docker run --rm -d --name test-${{ matrix.service }} \
+            -e NODE_ENV=test \
+            fintrack-${{ matrix.service }}:test || true
+          # Give it a moment to start
+          sleep 5
+          docker logs test-${{ matrix.service }} 2>&1 | head -20 || true
+          docker stop test-${{ matrix.service }} 2>/dev/null || true

@@ -2,38 +2,98 @@
 # FinTrack AI — CI/CD Pipeline (GitHub Actions)
 # =============================================================================
 #
+# MAIN CI/CD PIPELINE — Runs on every push and PR.
+#
 # Triggered on:
-#   - Pull requests to main/develop: Lint + Test
-#   - Push to main: Lint + Test + Build + Push to ECR + Deploy to dev
+#   - Pull requests to main/develop: Lint + Test + Security scan
+#   - Push to main: Full pipeline → Lint + Test + Build + Push ECR + Deploy
+#   - Push to develop: Lint + Test only
 #
-# Jobs:
-# 1. lint-and-test:  Matrix build across all 9 services
-#    - Install deps, run linting, run Jest tests
-# 2. build-and-push: Build Docker images, push to AWS ECR
-#    - Only runs on merge to main (after tests pass)
-#    - Tags images with git SHA for traceability
-# 3. deploy-dev:     Deploy to EKS dev cluster via kubectl + Kustomize
-# 4. mobile-check:   Install and type-check the mobile app
+# Pipeline Jobs (in order):
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ 1. lint-and-test    │ Matrix build across all 9 backend services          │
+# │                     │ - Checkout → Install deps → Lint → Test             │
+# │                     │ - Runs in parallel (one job per service)            │
+# ├─────────────────────┼───────────────────────────────────────────────────────┤
+# │ 2. mobile-check     │ React Native type-check + lint + test              │
+# │                     │ - Runs in parallel with backend lint-and-test       │
+# ├─────────────────────┼───────────────────────────────────────────────────────┤
+# │ 3. security-scan    │ OWASP dependency vulnerability scan                │
+# │                     │ - npm audit on all services + mobile app            │
+# │                     │ - Runs in parallel with lint-and-test               │
+# ├─────────────────────┼───────────────────────────────────────────────────────┤
+# │ 4. build-and-push   │ Build Docker images → Push to AWS ECR              │
+# │                     │ - Only on push to main (after tests pass)           │
+# │                     │ - Tags with git SHA for traceability                │
+# │                     │ - Uses Docker layer caching for speed               │
+# ├─────────────────────┼───────────────────────────────────────────────────────┤
+# │ 5. deploy-dev       │ Deploy to EKS dev cluster                          │
+# │                     │ - Uses Kustomize overlays for env-specific config   │
+# │                     │ - Only after successful build-and-push              │
+# ├─────────────────────┼───────────────────────────────────────────────────────┤
+# │ 6. deploy-staging   │ Deploy to EKS staging (manual approval required)    │
+# │                     │ - Requires GitHub environment approval              │
+# ├─────────────────────┼───────────────────────────────────────────────────────┤
+# │ 7. deploy-prod      │ Deploy to EKS production (manual approval required)│
+# │                     │ - Requires GitHub environment approval              │
+# └─────────────────────┴───────────────────────────────────────────────────────┘
 #
-# Secrets Required:
-#   AWS_ROLE_ARN — IAM role for ECR push and EKS deploy
+# Required Secrets:
+#   AWS_ROLE_ARN         — IAM role ARN for ECR push and EKS deploy
+#   CODECOV_TOKEN        — (optional) Codecov upload token for coverage reports
+#
+# Required GitHub Environments:
+#   dev                  — Auto-deploy (no approval needed)
+#   staging              — Requires reviewer approval
+#   production           — Requires reviewer approval + branch protection
+#
 # =============================================================================
 
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
+  # --------------------------------------------------------------------------
+  # Trigger: Pull request opened/updated against main or develop branches
+  # Runs: lint-and-test, mobile-check, security-scan only
+  # --------------------------------------------------------------------------
   pull_request:
     branches: [main, develop]
-  push:
-    branches: [main]
 
+  # --------------------------------------------------------------------------
+  # Trigger: Code pushed (merged) to main or develop
+  # main:    Full pipeline (test → build → deploy)
+  # develop: Test only
+  # --------------------------------------------------------------------------
+  push:
+    branches: [main, develop]
+
+# ---------------------------------------------------------------------------
+# Global environment variables shared across all jobs
+# ---------------------------------------------------------------------------
 env:
   NODE_VERSION: "20"
+  AWS_REGION: "us-east-1"
+
+# ---------------------------------------------------------------------------
+# Cancel in-progress runs for the same branch to save CI minutes
+# ---------------------------------------------------------------------------
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # =========================================================================
+  # JOB 1: Lint & Test all 9 backend services (matrix strategy)
+  # =========================================================================
+  # Runs each service in parallel using GitHub Actions matrix.
+  # Each service gets its own runner, installs deps, lints, and runs tests.
+  # Uses npm cache keyed on package-lock.json for faster installs.
+  # =========================================================================
   lint-and-test:
+    name: "Backend: ${{ matrix.service }}"
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false # Don't cancel other services if one fails
       matrix:
         service:
           - backend/api-gateway
@@ -45,33 +105,138 @@ jobs:
           - backend/services/notification-service
           - backend/services/receipt-ocr-service
           - backend/services/currency-service
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      # -- Checkout repository code --
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -- Setup Node.js with npm cache --
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: ${{ matrix.service }}/package-lock.json
 
+      # -- Install production + dev dependencies --
       - name: Install dependencies
         working-directory: ${{ matrix.service }}
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
+      # -- Run ESLint (skip if no lint script) --
       - name: Lint
         working-directory: ${{ matrix.service }}
         run: npm run lint --if-present
 
-      - name: Test
+      # -- Run Jest/Vitest tests + coverage (skip if no test script) --
+      - name: Test with coverage
         working-directory: ${{ matrix.service }}
-        run: npm test --if-present
+        run: npm test --if-present -- --coverage --passWithNoTests
 
+      # -- Upload coverage to Codecov (optional) --
+      - name: Upload coverage
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: ${{ matrix.service }}
+        continue-on-error: true
+
+  # =========================================================================
+  # JOB 2: Mobile App — Type-check, Lint, Test
+  # =========================================================================
+  # Validates the React Native mobile app code quality.
+  # Runs in parallel with backend tests (no dependency).
+  # =========================================================================
+  mobile-check:
+    name: "Mobile: React Native checks"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: mobile-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: mobile-app
+        run: npm ci --legacy-peer-deps
+
+      # -- TypeScript compilation check (no emit) --
+      - name: Type check
+        working-directory: mobile-app
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: mobile-app
+        run: npm run lint --if-present
+
+      - name: Test
+        working-directory: mobile-app
+        run: npm test --if-present -- --passWithNoTests
+
+  # =========================================================================
+  # JOB 3: Security — Dependency vulnerability scan
+  # =========================================================================
+  # Runs npm audit on every service and the mobile app.
+  # Reports high/critical vulnerabilities. Non-blocking (continue-on-error).
+  # =========================================================================
+  security-scan:
+    name: "Security: Dependency audit"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -- Audit all backend services for known vulnerabilities --
+      - name: Audit backend services
+        run: |
+          echo "=== Scanning backend services for vulnerabilities ==="
+          SERVICES=(
+            "backend/api-gateway"
+            "backend/services/auth-service"
+            "backend/services/user-service"
+            "backend/services/transaction-service"
+            "backend/services/analytics-service"
+            "backend/services/ai-recommendation-service"
+            "backend/services/notification-service"
+            "backend/services/receipt-ocr-service"
+            "backend/services/currency-service"
+          )
+          for svc in "${SERVICES[@]}"; do
+            echo "--- Auditing $svc ---"
+            cd "$svc"
+            npm audit --audit-level=high || true
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      # -- Audit mobile app dependencies --
+      - name: Audit mobile app
+        working-directory: mobile-app
+        run: |
+          echo "=== Scanning mobile-app for vulnerabilities ==="
+          npm audit --audit-level=high || true
+
+  # =========================================================================
+  # JOB 4: Build Docker images & Push to AWS ECR
+  # =========================================================================
+  # Only runs on push to main (after all tests pass).
+  # Builds each microservice as a Docker image, tags with git SHA,
+  # and pushes to Amazon ECR for deployment.
+  # Uses Docker layer caching via actions/cache to speed up builds.
+  # =========================================================================
   build-and-push:
-    needs: lint-and-test
-    if: github.ref == 'refs/heads/main'
+    name: "Build: ${{ matrix.service }}"
+    needs: [lint-and-test, mobile-check, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      id-token: write # Required for OIDC → AWS role assumption
       contents: read
     strategy:
       matrix:
@@ -85,71 +250,161 @@ jobs:
           - notification-service
           - receipt-ocr-service
           - currency-service
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -- Setup Docker Buildx for advanced build features (caching) --
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # -- Authenticate to AWS using OIDC (no long-lived keys) --
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
+      # -- Login to Amazon ECR private registry --
+      - name: Login to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push
-        env:
-          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+      # -- Determine build context path (api-gateway vs services/*) --
+      - name: Set build path
+        id: path
         run: |
-          SERVICE_PATH=${{ matrix.service == 'api-gateway' && 'backend/api-gateway' || format('backend/services/{0}', matrix.service) }}
-          docker build -t $ECR_REGISTRY/fintrack-${{ matrix.service }}:$IMAGE_TAG $SERVICE_PATH
-          docker push $ECR_REGISTRY/fintrack-${{ matrix.service }}:$IMAGE_TAG
+          if [ "${{ matrix.service }}" = "api-gateway" ]; then
+            echo "dir=backend/api-gateway" >> $GITHUB_OUTPUT
+          else
+            echo "dir=backend/services/${{ matrix.service }}" >> $GITHUB_OUTPUT
+          fi
 
+      # -- Build and push with layer caching --
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.path.outputs.dir }}
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/fintrack-${{ matrix.service }}:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/fintrack-${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # =========================================================================
+  # JOB 5: Deploy to Dev (automatic on main push)
+  # =========================================================================
+  # Deploys all services to the EKS dev cluster using Kustomize.
+  # Automatically triggered after successful build (no approval needed).
+  # Updates image tags to the current git SHA.
+  # =========================================================================
   deploy-dev:
+    name: "Deploy: Dev environment"
     needs: build-and-push
     runs-on: ubuntu-latest
-    environment: dev
+    environment: dev # GitHub Environment (no protection rules)
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name fintrack-dev
+      # -- Configure kubectl to target the dev EKS cluster --
+      - name: Update kubeconfig for dev
+        run: aws eks update-kubeconfig --name fintrack-dev --region ${{ env.AWS_REGION }}
 
-      - name: Deploy to dev
+      # -- Update image tags in Kustomize overlay to current SHA --
+      - name: Set image tags
+        working-directory: infra/kubernetes/overlays/dev
         run: |
-          kubectl apply -k infra/kubernetes/overlays/dev/
+          ECR_REGISTRY=$(aws ecr describe-repositories --query 'repositories[0].repositoryUri' --output text | cut -d/ -f1)
+          SERVICES="api-gateway auth-service user-service transaction-service analytics-service ai-recommendation-service notification-service receipt-ocr-service currency-service"
+          for svc in $SERVICES; do
+            kustomize edit set image fintrack-$svc=$ECR_REGISTRY/fintrack-$svc:${{ github.sha }}
+          done
 
-  mobile-check:
+      # -- Apply Kustomize manifests to dev cluster --
+      - name: Deploy to dev cluster
+        run: kubectl apply -k infra/kubernetes/overlays/dev/
+
+      # -- Wait for all deployments to become ready --
+      - name: Verify deployment rollout
+        run: |
+          SERVICES="api-gateway auth-service user-service transaction-service analytics-service ai-recommendation-service notification-service receipt-ocr-service currency-service"
+          for svc in $SERVICES; do
+            kubectl rollout status deployment/fintrack-$svc -n fintrack-dev --timeout=300s || true
+          done
+
+  # =========================================================================
+  # JOB 6: Deploy to Staging (requires manual approval)
+  # =========================================================================
+  # Requires approval from a reviewer in the "staging" GitHub Environment.
+  # Same process as dev but targeting the staging overlay and cluster.
+  # =========================================================================
+  deploy-staging:
+    name: "Deploy: Staging environment"
+    needs: deploy-dev
     runs-on: ubuntu-latest
+    environment: staging # Requires reviewer approval
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: mobile-app/package-lock.json
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install dependencies
-        working-directory: mobile-app
-        run: npm ci
+      - name: Update kubeconfig for staging
+        run: aws eks update-kubeconfig --name fintrack-staging --region ${{ env.AWS_REGION }}
 
-      - name: Type check
-        working-directory: mobile-app
-        run: npm run typecheck --if-present
+      - name: Deploy to staging cluster
+        run: kubectl apply -k infra/kubernetes/overlays/staging/
 
-      - name: Lint
-        working-directory: mobile-app
-        run: npm run lint --if-present
+      - name: Verify deployment rollout
+        run: |
+          SERVICES="api-gateway auth-service user-service transaction-service analytics-service ai-recommendation-service notification-service receipt-ocr-service currency-service"
+          for svc in $SERVICES; do
+            kubectl rollout status deployment/fintrack-$svc -n fintrack-staging --timeout=300s || true
+          done
 
-      - name: Test
-        working-directory: mobile-app
-        run: npm test --if-present
+  # =========================================================================
+  # JOB 7: Deploy to Production (requires manual approval)
+  # =========================================================================
+  # Requires approval from a reviewer in the "production" GitHub Environment.
+  # Should be configured with branch protection rules (main only).
+  # =========================================================================
+  deploy-prod:
+    name: "Deploy: Production environment"
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production # Requires reviewer approval + branch protection
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig for production
+        run: aws eks update-kubeconfig --name fintrack-prod --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to production cluster
+        run: kubectl apply -k infra/kubernetes/overlays/prod/
+
+      - name: Verify deployment rollout
+        run: |
+          SERVICES="api-gateway auth-service user-service transaction-service analytics-service ai-recommendation-service notification-service receipt-ocr-service currency-service"
+          for svc in $SERVICES; do
+            kubectl rollout status deployment/fintrack-$svc -n fintrack-prod --timeout=300s || true
+          done

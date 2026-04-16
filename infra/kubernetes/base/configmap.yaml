@@ -1,0 +1,34 @@
+# =============================================================================
+# FinTrack AI — Shared ConfigMap (Kubernetes Base Manifest)
+# =============================================================================
+# Non-sensitive configuration shared across all microservices.
+# Service discovery URLs resolve to in-cluster DNS names.
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fintrack-config
+  namespace: fintrack
+  labels:
+    app: fintrack
+data:
+  # ---- Service Discovery ----
+  auth-service-url: "http://auth-service:3001"
+  user-service-url: "http://user-service:3002"
+  transaction-service-url: "http://transaction-service:3003"
+  analytics-service-url: "http://analytics-service:3004"
+  ai-service-url: "http://ai-recommendation-service:3005"
+  notification-service-url: "http://notification-service:3006"
+  receipt-ocr-service-url: "http://receipt-ocr-service:3007"
+  currency-service-url: "http://currency-service:3008"
+  bank-service-url: "http://bank-integration-service:3009"
+
+  # ---- Infrastructure Endpoints ----
+  redis-url: "redis://redis:6379"
+  kafka-brokers: "kafka:9092"
+  elasticsearch-url: "http://elasticsearch:9200"
+
+  # ---- Application Settings ----
+  log-level: "info"
+  node-env: "production"

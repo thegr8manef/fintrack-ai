@@ -1,0 +1,52 @@
+# =============================================================================
+# FinTrack AI — Ingress (Kubernetes Base Manifest)
+# =============================================================================
+# NGINX Ingress routes external traffic to the API Gateway.
+# All client requests enter through api-gateway, which proxies
+# to the appropriate microservice internally.
+# TLS termination is handled at the ingress level.
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fintrack-ingress
+  namespace: fintrack
+  labels:
+    app: fintrack
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # Rate limiting: 20 requests/sec per IP
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+    # CORS headers
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, Accept"
+    # SSL redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # cert-manager for automatic TLS certificates
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.fintrack.ai
+      secretName: fintrack-tls
+  rules:
+    - host: api.fintrack.ai
+      http:
+        paths:
+          # All traffic routes through the API Gateway
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 3000
